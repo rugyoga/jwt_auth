@@ -10,15 +10,17 @@ defmodule ElixirJwt do
   @time_now 1586389735
   @time_week_from_now 1586994535
   @jws %{ "alg" => "HS256", "typ" => "JWT" }
+  @jwk %{ "k" => :jose_base64url.encode(@secret) , "kty" => "oct"}
+  @ruby_jwt "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0NTYsImNvbXBhbnlfaWQiOjEyMywic3ViZG9tYWluIjoidWpldC5jbyIsIm5vbmNlIjoiYWJjZGVmIiwidHlwZSI6InVzZXIiLCJleHAiOjE1ODY5OTQ1MzUsImlzcyI6IlVKRVQiLCJpYXQiOjE1ODYzODk3MzV9.RglmPqiO7SeAnHX1jc1o6wgNWLPal9Bp6lgI3ujNw0A"
   @moduledoc """
   Documentation for ElixirJwt.
   """
   def issue_token(payload) do
-    jwk = %{ "kty" => "oct", "k" => :jose_base64url.encode(@secret) }
-    jws = %{ "typ"=>"JWT", "alg"=>"HS256" }
+    #jwk = %{ "kty" => "oct", "k" => :jose_base64url.encode(@secret) }
+    #jws = %{ "typ"=>"JWT", "alg"=>"HS256" }
     payload = Map.put(payload, :iss, @issuer)
     payload = Map.put(payload, :iat, @time_now)
-    signed = JOSE.JWT.sign(jwk, jws, payload)
+    signed = JOSE.JWT.sign(@jwk, @jws, payload)
     JOSE.JWS.compact(signed)
   end
 
@@ -33,6 +35,10 @@ defmodule ElixirJwt do
          exp: @time_week_from_now
        }
     )
+  end
+
+  def verify(jwt) do
+     JOSE.JWT.verify(@jwk, {%{alg: :jose_jws_alg_hmac}, jwt})
   end
 
   def user() do
@@ -54,6 +60,11 @@ defmodule ElixirJwt do
       nil
     end
   end
+
+  def ruby_jwt() do
+    @ruby_jwt
+  end
 end
 
-IO.puts(Kernel.inspect(ElixirJwt.user_token(ElixirJwt.user())))
+# IO.puts(Kernel.inspect(ElixirJwt.user_token(ElixirJwt.user())))
+ IO.puts(Kernel.inspect(ElixirJwt.verify(ElixirJwt.ruby_jwt())))
