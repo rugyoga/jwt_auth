@@ -15,34 +15,38 @@ defmodule ElixirJwt do
   @moduledoc """
   Documentation for ElixirJwt.
   """
-  def issue_token(payload) do
-    #jwk = %{ "kty" => "oct", "k" => :jose_base64url.encode(@secret) }
-    #jws = %{ "typ"=>"JWT", "alg"=>"HS256" }
-    payload = Map.put(payload, :iss, @issuer)
-    payload = Map.put(payload, :iat, @time_now)
-    signed = JOSE.JWT.sign(@jwk, @jws, payload)
-    JOSE.JWS.compact(signed)
+  def encode(payload) do
+    JOSE.JWT.sign(@jwk, @jws, payload) |> JOSE.JWS.compact
   end
 
-  def user_token(user) do
-    company = fetch_company(user.company_id)
-    issue_token(
-      %{ user_id: user.id,
-         company_id: user.company_id,
-         subdomain: company.subdomain,
+  def user_token(user, company) do
+    encode(
+      %{
+         company_id: company.id,
+         exp: @time_week_from_now,
+         iat: @time_now,
+         iss: @issuer,
          nonce: user.nonce,
+         subdomain: company.subdomain,
          type: "user",
-         exp: @time_week_from_now
+         user_id: user.id
        }
     )
   end
 
-  def verify(jwt) do
-     JOSE.JWT.verify(@jwk, {%{alg: :jose_jws_alg_hmac}, jwt})
+  def decode(jwt) do
+     case JOSE.JWT.verify(@jwk, {%{alg: :jose_jws_alg_hmac}, jwt}) do
+       {true, %JOSE.JWT{ fields: payload}, _} -> {:ok, payload}
+       error -> error
+     end
   end
 
   def user() do
     @user
+  end
+
+  def company() do
+    @company
   end
 
   def fetch_company(id) do
@@ -66,5 +70,14 @@ defmodule ElixirJwt do
   end
 end
 
-# IO.puts(Kernel.inspect(ElixirJwt.user_token(ElixirJwt.user())))
- IO.puts(Kernel.inspect(ElixirJwt.verify(ElixirJwt.ruby_jwt())))
+ruby_jwt = ElixirJwt.ruby_jwt()
+user = ElixirJwt.user()
+company = ElixirJwt.company()
+{metadata, elixir_jwt} = ElixirJwt.user_token(user, company)
+{:ok, ruby_payload} = ElixirJwt.decode(ruby_jwt)
+{:ok, elixir_payload} = ElixirJwt.decode(elixir_jwt)
+
+ IO.puts("ruby jwt: " <> ruby_jwt)
+ IO.puts("elixir jwt: " <> elixir_jwt)
+ IO.puts("ruby payload: " <>  Kernel.inspect(ruby_payload))
+ IO.puts("elixir payload: " <>  Kernel.inspect(elixir_payload))
