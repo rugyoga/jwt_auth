@@ -1,4 +1,4 @@
-Tryting to generate the same JWT from ruby and elixir.
+Trying to generate the same JWT from ruby and elixir.
 
 To run the ruby, do:
 
@@ -7,7 +7,7 @@ ruby auth_token.rb
 ```
 it'll generate a JWT
 
-or pass a JWT and it'll` consume it and convert it.
+or pass a JWT and it'll consume it and convert it.
 
 ```ruby
 ruby auth_token.rb <JWT string>
